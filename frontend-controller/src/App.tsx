@@ -17,27 +17,61 @@ function App() {
         lr: 0
     } as ControlState)
 
-    
+    useEffect(() => {
+        function logKey(e: KeyboardEvent, upDown: 0 | 1) {
+            switch (e.code) {
+                case "KeyW":
+                    if(upDown === 0 && control.fw === -1) {
+                        break;
+                    }
+                    setControl({ ...control, fw: upDown })
+                    break;
+                case "KeyA":
+                    if(upDown === 0 && control.lr === 1) {
+                        break;
+                    }
+                    setControl({ ...control, lr: -upDown as ControlTernary })
+                    break;
+                case "KeyS":
+                    if(upDown === 0 && control.fw === 1) {
+                        break;
+                    }
+                    setControl({ ...control, fw: -upDown as ControlTernary })
+                    break;
+                case "KeyD":
+                    if(upDown === 0 && control.lr === -1) {
+                        break;
+                    }
+                    setControl({ ...control, lr: upDown })
+                    break;
+            }
+        }
+        const onKeyDown = (e: KeyboardEvent) => { logKey(e, 1) }
+        const onKeyUp = (e: KeyboardEvent) => { logKey(e, 0) }
+        document.onkeydown = onKeyDown;
+        document.onkeyup = onKeyUp;
+    }, [control])
+
     return (
         <div className="App">
             <Grid container style={{ height: "100%" }}>
                 <Grid item xs={8}>
                     <Grid container>
                         <Grid item xs={12}>
-                            <div style={{height: "60vh"}}>
+                            <div style={{ height: "60vh" }}>
                                 <VideoStream />
                             </div>
                         </Grid>
                         <Grid item xs={12}>
-                            <div style={{height: "40vh"}}>
-                                <ControlPad orientation="left-right" control={control} setControl={setControl}/>
+                            <div style={{ height: "40vh" }}>
+                                <ControlPad orientation="left-right" control={control} setControl={setControl} />
                             </div>
                         </Grid>
                     </Grid>
                 </Grid>
                 <Grid item xs={4}>
-                    <div style={{height: "100vh"}}>
-                        <ControlPad orientation="up-down" control={control} setControl={setControl}/>
+                    <div style={{ height: "100vh" }}>
+                        <ControlPad orientation="up-down" control={control} setControl={setControl} />
                     </div>
                 </Grid>
             </Grid>
