@@ -4,6 +4,7 @@ import './App.css';
 import { Grid } from '@material-ui/core'
 import VideoStream from './video-stream/VideoStream'
 import ControlPad from './control-pad/ControlPad'
+import NoSignal from "./assets/nosignal.png"
 
 type ControlTernary = -1 | 0 | 1;
 export interface ControlState {
@@ -16,6 +17,16 @@ function App() {
         fw: 0,
         lr: 0
     } as ControlState)
+
+    const [image, setImage] = useState(new Image())
+
+    useEffect(() => {
+        const newImg = new Image();
+        newImg.onload = () => {
+            setImage(newImg)
+        }
+        newImg.src = `${NoSignal}`
+    })
 
     useEffect(() => {
         function logKey(e: KeyboardEvent, upDown: 0 | 1) {
@@ -59,7 +70,7 @@ function App() {
                     <Grid container>
                         <Grid item xs={12}>
                             <div style={{ height: "60vh" }}>
-                                <VideoStream />
+                                <VideoStream image={image}/>
                             </div>
                         </Grid>
                         <Grid item xs={12}>
