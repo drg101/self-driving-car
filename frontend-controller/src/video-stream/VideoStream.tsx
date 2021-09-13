@@ -1,12 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Grid } from '@material-ui/core'
 
-type ControlTernary = -1 | 0 | 1;
-interface ControlState {
-    fw: ControlTernary,
-    lr: ControlTernary
-}
-
 export default function VideoStream() {
     const canvasRef = useRef(null as unknown as HTMLCanvasElement)
     useEffect(() => {
