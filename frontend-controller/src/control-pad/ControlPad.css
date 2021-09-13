@@ -1,3 +1,11 @@
 .pad {
     border: 2px black solid;
 }
+
+.padIconContainer {
+    padding-top: 30%;
+}
+
+.padIcon {
+    transform: scale(4);
+}
