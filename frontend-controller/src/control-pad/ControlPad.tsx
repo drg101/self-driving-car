@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Grid } from '@material-ui/core'
-import './ControlPad.scss'
+import './ControlPad.css'
 import { KeyboardArrowUp, KeyboardArrowDown, KeyboardArrowLeft, KeyboardArrowRight } from '@material-ui/icons';
 import { ControlState } from "../App"
 
