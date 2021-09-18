@@ -7,7 +7,7 @@ import ControlPad from './control-pad/ControlPad'
 import NoSignal from "./assets/nosignal.png"
 import { io } from "socket.io-client";
 
-const socket = io("http://0.0.0.0:8002", {
+const socket = io("http://192.168.241.58:8002", {
     reconnectionDelayMax: 10000
 });
 
@@ -16,7 +16,7 @@ export interface ControlState {
     fw: ControlTernary,
     lr: ControlTernary
 }
-
+let oldControl = {}
 function App() {
     const [control, setControl] = useState({
         fw: 0,
@@ -32,6 +32,14 @@ function App() {
         }
         newImg.src = `${NoSignal}`
     })
+
+    useEffect(() => {
+        if(JSON.stringify(control) !== JSON.stringify(oldControl)) {
+            console.log({control})
+            socket.emit('my_event', control)
+            oldControl = control;
+        }
+    }, [control])
 
     useEffect(() => {
         function logKey(e: KeyboardEvent, upDown: 0 | 1) {
