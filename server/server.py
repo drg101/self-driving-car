@@ -25,10 +25,6 @@ def connect():
 def disconnect():
     print(f'disConnection')
     return True
-    
-@sio.event
-def message(m):
-    print('received message ' + m)
 
 @sio.on('my_event')
 def handle_my_custom_event(json):

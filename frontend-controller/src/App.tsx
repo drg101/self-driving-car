@@ -11,6 +11,8 @@ const socket = io("http://192.168.241.58:8002", {
     reconnectionDelayMax: 10000
 });
 
+socket.on('res', (e) => { console.log(`Recieved ${e}`) })
+
 type ControlTernary = -1 | 0 | 1;
 export interface ControlState {
     fw: ControlTernary,
@@ -34,8 +36,8 @@ function App() {
     })
 
     useEffect(() => {
-        if(JSON.stringify(control) !== JSON.stringify(oldControl)) {
-            console.log({control})
+        if (JSON.stringify(control) !== JSON.stringify(oldControl)) {
+            console.log({ control })
             socket.emit('my_event', control)
             oldControl = control;
         }
@@ -45,25 +47,25 @@ function App() {
         function logKey(e: KeyboardEvent, upDown: 0 | 1) {
             switch (e.code) {
                 case "KeyW":
-                    if(upDown === 0 && control.fw === -1) {
+                    if (upDown === 0 && control.fw === -1) {
                         break;
                     }
                     setControl({ ...control, fw: upDown })
                     break;
                 case "KeyA":
-                    if(upDown === 0 && control.lr === 1) {
+                    if (upDown === 0 && control.lr === 1) {
                         break;
                     }
                     setControl({ ...control, lr: -upDown as ControlTernary })
                     break;
                 case "KeyS":
-                    if(upDown === 0 && control.fw === 1) {
+                    if (upDown === 0 && control.fw === 1) {
                         break;
                     }
                     setControl({ ...control, fw: -upDown as ControlTernary })
                     break;
                 case "KeyD":
-                    if(upDown === 0 && control.lr === -1) {
+                    if (upDown === 0 && control.lr === -1) {
                         break;
                     }
                     setControl({ ...control, lr: upDown })
@@ -83,7 +85,7 @@ function App() {
                     <Grid container>
                         <Grid item xs={12}>
                             <div style={{ height: "60vh" }}>
-                                <VideoStream image={image}/>
+                                <VideoStream image={image} />
                             </div>
                         </Grid>
                         <Grid item xs={12}>
