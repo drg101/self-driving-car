@@ -1,30 +1,41 @@
-import socket
+# import socket
 
-HOST = '0.0.0.0'
-PORT = 6669
+# HOST = '0.0.0.0'
+# PORT = 6669
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-s.bind((HOST, PORT))
-s.listen(5)
-global pi
-pi=None
+# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+# s.bind((HOST, PORT))
+# s.listen(5)
+# global pi
+# pi=None
 
 
 from flask import Flask, render_template
-from flask_socketio import SocketIO
-app = Flask(__name__)
-socketio = SocketIO(app)
-if __name__ == '__main__':
-    socketio.run(app, port=8002)
+from flask_socketio import SocketIO, send, emit
+flaskApp = Flask(__name__)
+sio = SocketIO(flaskApp,cors_allowed_origins="*")
     
-@socketio.event
-def connection(sid):
-    print(f'Connection from {sid}')
+@sio.event
+def connect():
+    print(f'Connection')
+    return True
 
-@socketio.on('my event')
+@sio.event
+def disconnect():
+    print(f'disConnection')
+    return True
+    
+@sio.event
+def message(m):
+    print('received message ' + m)
+
+@sio.on('my_event')
 def handle_my_custom_event(json):
     print('received json: ' + str(json))
+    emit("res", "yeet")
+    
+sio.run(flaskApp, host='0.0.0.0', port=8002)
 
 # while True:
 #     # Establish connection with client.
