@@ -17,13 +17,13 @@ flaskApp = Flask(__name__)
 sio = SocketIO(flaskApp,cors_allowed_origins="*")
     
 @sio.event
-def connect():
-    print(f'Connection')
+def connect(sid):
+    print(f'Connection from {sid}')
     return True
 
 @sio.event
-def disconnect():
-    print(f'disConnection')
+def disconnect(sid):
+    print(f'disConnection from {sid}')
     return True
 
 @sio.on('my_event')
