@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import logo from './logo.svg';
-import './App.scss';
+import './App.css';
 import { Grid } from '@material-ui/core'
 import VideoStream from './video-stream/VideoStream'
 import ControlPad from './control-pad/ControlPad'
 import NoSignal from "./assets/nosignal.png"
-// import { io } from "socket.io-client";
+import { io } from "socket.io-client";
 
-// const socket = io("http://0.0.0.0:8002", {
-//     reconnectionDelayMax: 10000
-// });
+const socket = io("http://0.0.0.0:8002", {
+    reconnectionDelayMax: 10000
+});
 
 type ControlTernary = -1 | 0 | 1;
 export interface ControlState {
