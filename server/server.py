@@ -19,7 +19,6 @@ def controlPI(controlJSON):
     if pi != None:
         pi.send(str(controlJSON).encode())
 
-
 def controlServer():
     global pi
     HOST = '0.0.0.0'
@@ -93,7 +92,6 @@ if __name__ == '__main__':
     controlThread = threading.Thread(target=controlServer, args=[]).start()
     videoThread = threading.Thread(target=videoServer, args=[]).start()
     sio.start_background_task(target=emmisionThread)
-
     @sio.event
     def connect():
         print(f'Connection from')

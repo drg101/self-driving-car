@@ -11,7 +11,11 @@ const socket = io("http://192.168.241.58:8002", {
     reconnectionDelayMax: 10000
 });
 
-socket.on('res', (e) => { console.log(`Recieved ${e}`) })
+socket.on('test', (e) => { console.log(`Recieved ${e}`) })
+socket.on('imgFrame', (e: string) => {
+    const b64 = e.substr(2,e.length-2)
+    console.log({b64})
+})
 
 type ControlTernary = -1 | 0 | 1;
 export interface ControlState {
@@ -38,7 +42,7 @@ function App() {
     useEffect(() => {
         if (JSON.stringify(control) !== JSON.stringify(oldControl)) {
             console.log({ control })
-            socket.emit('my_event', control)
+            socket.emit('my_event', JSON.stringify(control))
             oldControl = control;
         }
     }, [control])
