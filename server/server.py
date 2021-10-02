@@ -8,16 +8,16 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO, send, emit
 import base64
 
-pi=None
+pi = None
 flaskApp = Flask(__name__)
-sio = SocketIO(flaskApp,cors_allowed_origins="*",logger=True, engineio_logger=True)
-toEmit = []
+sio = SocketIO(flaskApp, cors_allowed_origins="*")
+toEmit = (None, None)
+
 
 def controlPI(controlJSON):
     global pi
     if pi != None:
         pi.send(str(controlJSON).encode())
-        
 
 
 def controlServer():
@@ -36,10 +36,10 @@ def controlServer():
 
         # send a thank you message to the client. encoding to send byte type.
         c.send('THANKJ YIOU FOR CONNECTUNG'.encode())
-        pi=c
+        pi = c
         break
-    
-    
+
+
 def videoServer():
     global toEmit
     MAX_DGRAM = 2**16
@@ -64,14 +64,14 @@ def videoServer():
             dat += seg[1:]
         else:
             dat += seg[1:]
-            #our image
+            # our image
             img = cv2.imdecode(np.fromstring(dat, dtype=np.uint8), 1)
-            smol_img = cv2.resize(img, (320, 240)) 
+            smol_img = cv2.resize(img, (320, 240))
             retval, buffer = cv2.imencode('.jpg', smol_img)
             imgAsBase64 = base64.b64encode(buffer)
-            toEmit.append(('imgFrame', str(imgAsBase64)))
+            toEmit = ('imgFrame', str(imgAsBase64))
             #emitSocket('imgFrame', imgAsBase64)
-            cv2.imshow('frame', smol_img)
+            cv2.imshow('frame', img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             dat = b''
@@ -79,22 +79,21 @@ def videoServer():
     # cap.release()
     cv2.destroyAllWindows()
     s.close()
-    
+
+
 def emmisionThread():
     global toEmit
     while(True):
-        for e in toEmit:
-            #print(f"emmiting {e[0]}, {e[1]}")
-            sio.emit(e[0],e[1])
-        toEmit = []
-        sio.sleep(1./24)
-    
-    
+        e = toEmit
+        #sio.emit(e[0], e[1])
+        sio.sleep(1./10)
+
 
 if __name__ == '__main__':
     controlThread = threading.Thread(target=controlServer, args=[]).start()
     videoThread = threading.Thread(target=videoServer, args=[]).start()
     sio.start_background_task(target=emmisionThread)
+
     @sio.event
     def connect():
         print(f'Connection from')
