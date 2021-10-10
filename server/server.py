@@ -7,6 +7,7 @@ import threading
 from flask import Flask, render_template
 from flask_socketio import SocketIO, send, emit
 import base64
+import time
 
 pi = None
 flaskApp = Flask(__name__)
@@ -65,14 +66,15 @@ def videoServer():
             dat += seg[1:]
             # our image
             img = cv2.imdecode(np.fromstring(dat, dtype=np.uint8), 1)
-            smol_img = cv2.resize(img, (320, 240))
-            retval, buffer = cv2.imencode('.jpg', smol_img)
-            imgAsBase64 = base64.b64encode(buffer)
-            toEmit = ('imgFrame', str(imgAsBase64))
-            #emitSocket('imgFrame', imgAsBase64)
-            cv2.imshow('frame', img)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            # smol_img = cv2.resize(img, (320, 240))
+            if (type(img) is np.ndarray):  
+                retval, buffer = cv2.imencode('.jpg', img)
+                imgAsBase64 = base64.b64encode(buffer)
+                toEmit = ('imgFrame', str(imgAsBase64))
+                #emitSocket('imgFrame', imgAsBase64)
+                cv2.imshow('frame', img)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
             dat = b''
 
     # cap.release()
@@ -84,8 +86,8 @@ def emmisionThread():
     global toEmit
     while(True):
         e = toEmit
-        #sio.emit(e[0], e[1])
-        sio.sleep(1./10)
+        sio.emit(e[0], e[1])
+        sio.sleep(1./30)
 
 
 if __name__ == '__main__':
