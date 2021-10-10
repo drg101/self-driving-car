@@ -4,7 +4,12 @@ import socket
 import json
 import threading
 import time
- 
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+
+serverip = '192.168.80.58'
+videoRes = (640, 480)
+videoFps = 60
 
 def controlScript():
     # Create a socket object
@@ -15,7 +20,7 @@ def controlScript():
     
     # connect to the server on local computer
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.connect(('192.168.241.58', port))
+    s.connect((serverip, port))
 
     straight()
     stop() 
@@ -64,7 +69,7 @@ class FrameSegment(object):
     """
     MAX_DGRAM = 2**16
     MAX_IMAGE_DGRAM = MAX_DGRAM - 64 # extract 64 bytes in case UDP frame overflown
-    def __init__(self, sock, port, addr="192.168.241.58"):
+    def __init__(self, sock, port, addr=serverip):
         self.s = sock
         self.port = port
         self.addr = addr
@@ -75,6 +80,7 @@ class FrameSegment(object):
         into data segments 
         """
         compress_img = cv2.imencode('.jpg', img)[1]
+        # resized_image = cv2.resize(compress_img, (, 75)) 
         dat = compress_img.tostring()
         size = len(dat)
         count = math.ceil(size/(self.MAX_IMAGE_DGRAM))
@@ -89,25 +95,26 @@ class FrameSegment(object):
             count -= 1
 
 def videoScript():
+    camera = PiCamera()
+    camera.resolution = videoRes
+    camera.framerate = videoFps
+    rawCapture = PiRGBArray(camera, size=videoRes)
+    # wait for camera to exist
+    time.sleep(0.1)
+    print("sending video data")
+
+    # make da socket on port port 6670
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     port = 6670
 
+    # this is the thing that sends it to the server
     fs = FrameSegment(s, port)
-
-    cap = cv2.VideoCapture(0)
-    frame_rate = 5
-    prev = 0
-    while (cap.isOpened()):
-        time_elapsed = time.time() - prev
-        if time_elapsed > 1./frame_rate:
-            prev = time.time()
-            _, frame = cap.read()
-            fs.udp_frame(frame)
-
-    cap.release()
-    cv2.destroyAllWindows()
-    s.close()
+    
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        image = frame.array
+        fs.udp_frame(image)
+        rawCapture.truncate(0)
 
 if __name__ == "__main__":
     controlThread = threading.Thread(target=controlScript, args=[])
