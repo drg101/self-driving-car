@@ -7,8 +7,15 @@ lr = 0
 
 EPSILON = 0.03
 
+def getLr():
+    if lr > 0.01:
+        return 1
+    elif lr < -0.01:
+        return -1
+    return 0
+
 def get_inputs():
-    return {'fw': round(fw - bk,2), 'lr': lr}
+    return {'fw': round(fw - bk,2), 'lr': getLr()}
 
 def poll(onChange):
     global fw,bk,lr
@@ -27,7 +34,10 @@ def poll(onChange):
             elif event.code == "ABS_X":
                 # print(f"LR: {event.state / 32768}")
                 newlr  = round(event.state / 32768,2)
-        if abs(get_inputs()['fw'] - (newfw - newbk)) > EPSILON or abs(get_inputs()['lr'] - (newlr)) > EPSILON:
+            elif event.code == 'ABS_HAT0X':
+                newlr = event.state
+                #print(event.code, event.state)
+        if abs(get_inputs()['fw'] - (newfw - newbk)) > EPSILON or abs(get_inputs()['lr'] - (newlr)) > EPSILON or True:
             fw = newfw
             bk = newbk
             lr = newlr
