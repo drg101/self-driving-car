@@ -3,3 +3,9 @@ env/*
 data/*
 
 *.pyc
+
+*/.ipynb_checkpoints
+
+*/venv
+ml/weirdblue.jpeg
+*/data*
