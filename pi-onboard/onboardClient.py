@@ -6,16 +6,20 @@ import threading
 import time
 from picamera.array import PiRGBArray
 from picamera import PiCamera
+import cv2
+import numpy as np
+import socket
+import struct
+import math
 
 serverip = '192.168.80.58'
 videoRes = (640, 480)
 videoFps = 60
 
+# Thread that creates a thread that connects to the server @serverip
 def controlScript():
-    # Create a socket object
     s = socket.socket()        
     
-    # Define the port on which you want to connect
     port = 6669             
     
     # connect to the server on local computer
@@ -55,13 +59,7 @@ def controlScript():
                     else:
                         straight()
 
-import cv2
-import numpy as np
-import socket
-import struct
-import math
-
-
+# From a blog post
 class FrameSegment(object):
     """ 
     Object to break down image frame segment
@@ -94,6 +92,7 @@ class FrameSegment(object):
             array_pos_start = array_pos_end
             count -= 1
 
+# Creates a thread that emits video from the picam.
 def videoScript():
     camera = PiCamera()
     camera.resolution = videoRes
