@@ -2,20 +2,17 @@ import React, { useEffect, useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { Grid } from '@material-ui/core'
-import VideoStream from './video-stream/VideoStream'
 import ControlPad from './control-pad/ControlPad'
 import NoSignal from "./assets/nosignal.png"
 import { io } from "socket.io-client";
 
-const socket = io("http://192.168.241.58:8002", {
+const SERVER_IP = '192.168.80.58'
+
+const socket = io(`http://${SERVER_IP}:8002`, {
     reconnectionDelayMax: 10000
 });
 
 socket.on('test', (e) => { console.log(`Recieved ${e}`) })
-socket.on('imgFrame', (e: string) => {
-    const b64 = e.substr(2,e.length-2)
-    console.log({b64})
-})
 
 type ControlTernary = -1 | 0 | 1;
 export interface ControlState {
@@ -89,7 +86,7 @@ function App() {
                     <Grid container>
                         <Grid item xs={12}>
                             <div style={{ height: "60vh" }}>
-                                <VideoStream image={image} />
+                                <img src={`http://${SERVER_IP}:8003/video_feed`} style={{ width: "100%", height: "100%" }} />
                             </div>
                         </Grid>
                         <Grid item xs={12}>
