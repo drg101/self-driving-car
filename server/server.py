@@ -11,19 +11,21 @@ import base64
 import time
 from flask_compress import Compress
 import logging
+from pynput import keyboard
+import json
+
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 compress = Compress()
 
 pi = None
 socketApp = Flask(__name__)
-videoApp = Flask("videoApp")
-compress.init_app(videoApp)
 
 sio = SocketIO(socketApp, cors_allowed_origins="*")
 outputFrame = None
-lock = threading.Lock()
 q = [int(cv2.IMWRITE_JPEG_QUALITY), 20]
+
+piInput = {'lr': 0, 'fw': 0}
 
 
 CONTROL_PORT = 6669
@@ -60,7 +62,6 @@ def controlSenderServer():
 # Thread that creates a server that the pi UDP connects with on port 6670. This is the one that
 # collects video stream data.
 def videoReceiverServer():
-    global outputFrame,lock,videoApp
     MAX_DGRAM = 2**16
 
     def dump_buffer(s):
@@ -89,45 +90,57 @@ def videoReceiverServer():
                 cv2.imshow("frames",cv2.resize(img, (1280, 960)))
                 if cv2.waitKey(1):
                     pass
-                with lock: 
-                    outputFrame = cv2.resize(img, (320, 240)).copy()
             dat = b''
 
-# Thread that creates a flask app on port 8003 that transmits the video data to the open world on 0.0.0.0:8003/video_feed
-def videoSenderServer():
-    videoApp.run(host=HOST, port=VIDEO_PORT, debug=False, use_reloader=False) # dont touch this shit!
+def controlChanged():
+    print(f'control: {piInput}')
+    controlPI(json.dumps(piInput) + '@')
 
-# helper, this code was taken from a blog post and thats why it has so many comments
-def generateFrame():
-	# grab global references to the output frame and lock variables
-	global outputFrame, lock
-	# loop over frames from the output stream
-	while True:
-		# wait until the lock is acquired
-		with lock:
-			# check if the output frame is available, otherwise skip
-			# the iteration of the loop
-			if outputFrame is None:
-				continue
-			# encode the frame in JPEG format
-			(flag, encodedImage) = cv2.imencode(".jpg", outputFrame, q)
-			# ensure the frame was successfully encoded
-		# yield the output frame in the byte format
-		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
-			bytearray(encodedImage) + b'\r\n')
-  
-@videoApp.route("/video_feed")
-def video_feed():
-	return Response(generateFrame(),
-		mimetype = "multipart/x-mixed-replace; boundary=frame")
+def onKeyRelease(key):
+    try:
+        key = key.char
+        originalInput = json.dumps(piInput)
+        if key == 'w' and piInput['fw'] != -1:
+            piInput['fw'] = 0
+        elif key == 's' and piInput['fw'] != 1:
+            piInput['fw'] = 0
+        elif key == 'd' and piInput['lr'] != -1:
+            piInput['lr'] = 0
+        elif key == 'a' and piInput['lr'] != 1:
+            piInput['lr'] = 0
+        if json.dumps(piInput) != originalInput:
+            controlChanged()
+    except:
+        pass
+
+def onKeyPress(key):
+    try:
+        key = key.char
+        originalInput = json.dumps(piInput)
+        if key == 'w':
+            piInput['fw'] = 1
+        elif key == 's':
+            piInput['fw'] = -1
+        elif key == 'd':
+            piInput['lr'] = 1
+        elif key == 'a':
+            piInput['lr'] = -1
+        if json.dumps(piInput) != originalInput:
+            controlChanged()
+    except:
+        pass
+    
+def controlPad(): 
+    with keyboard.Listener(on_press = onKeyPress,on_release = onKeyRelease) as listener:
+        listener.join()
 
 
 if __name__ == '__main__':
     controlSenderThread = threading.Thread(target=controlSenderServer, args=[]).start()
     videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[]).start()
-    videoSenderThread = threading.Thread(target=videoSenderServer, args=[]).start()
+    controlPad = threading.Thread(target=controlPad, args=[]).start()
     
-    # the sio listeners dont play well with threads so they live here now.
+    #the sio listeners dont play well with threads so they live here now.
     @sio.event
     def connect():
         print(f'Connection from')
