@@ -9,14 +9,22 @@ from flask import Flask, Response
 from flask_socketio import SocketIO, send, emit
 import base64
 import time
+from flask_compress import Compress
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+compress = Compress()
 
 pi = None
 socketApp = Flask(__name__)
 videoApp = Flask("videoApp")
+compress.init_app(videoApp)
 
 sio = SocketIO(socketApp, cors_allowed_origins="*")
 outputFrame = None
 lock = threading.Lock()
+q = [int(cv2.IMWRITE_JPEG_QUALITY), 20]
+
 
 CONTROL_PORT = 6669
 SOCKET_PORT = 8002
@@ -78,8 +86,11 @@ def videoReceiverServer():
             # our image
             img = cv2.imdecode(np.fromstring(dat, dtype=np.uint8), 1)
             if (type(img) is np.ndarray):
+                cv2.imshow("frames",cv2.resize(img, (1280, 960)))
+                if cv2.waitKey(1):
+                    pass
                 with lock: 
-                    outputFrame = img.copy()
+                    outputFrame = cv2.resize(img, (320, 240)).copy()
             dat = b''
 
 # Thread that creates a flask app on port 8003 that transmits the video data to the open world on 0.0.0.0:8003/video_feed
@@ -99,10 +110,8 @@ def generateFrame():
 			if outputFrame is None:
 				continue
 			# encode the frame in JPEG format
-			(flag, encodedImage) = cv2.imencode(".jpg", outputFrame)
+			(flag, encodedImage) = cv2.imencode(".jpg", outputFrame, q)
 			# ensure the frame was successfully encoded
-			if not flag:
-				continue
 		# yield the output frame in the byte format
 		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
 			bytearray(encodedImage) + b'\r\n')
@@ -134,4 +143,4 @@ if __name__ == '__main__':
         print('received control string: ' + json)
         controlPI(json + '@')
     print("here")
-    sio.run(socketApp, host=HOST, port=SOCKET_PORT)
+    sio.run(socketApp, host=HOST, port=SOCKET_PORT, debug=False)
