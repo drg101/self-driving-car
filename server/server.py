@@ -1,18 +1,28 @@
 from __future__ import division
 import cv2
+import flask
 import numpy as np
 import struct
 import socket
 import threading
-from flask import Flask, render_template
+from flask import Flask, Response
 from flask_socketio import SocketIO, send, emit
 import base64
 import time
 
 pi = None
-flaskApp = Flask(__name__)
-sio = SocketIO(flaskApp, cors_allowed_origins="*")
-toEmit = (None, None)
+socketApp = Flask(__name__)
+videoApp = Flask("videoApp")
+
+sio = SocketIO(socketApp, cors_allowed_origins="*")
+outputFrame = None
+lock = threading.Lock()
+
+CONTROL_PORT = 6669
+SOCKET_PORT = 8002
+VIDEO_PORT = 8003
+HOST = '0.0.0.0'
+
 
 
 def controlPI(controlJSON):
@@ -22,8 +32,7 @@ def controlPI(controlJSON):
 
 def controlServer():
     global pi
-    HOST = '0.0.0.0'
-    PORT = 6669
+    PORT = CONTROL_PORT
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -41,7 +50,7 @@ def controlServer():
 
 
 def videoServer():
-    global toEmit
+    global outputFrame,lock,videoApp
     MAX_DGRAM = 2**16
 
     def dump_buffer(s):
@@ -67,33 +76,52 @@ def videoServer():
             # our image
             img = cv2.imdecode(np.fromstring(dat, dtype=np.uint8), 1)
             # smol_img = cv2.resize(img, (320, 240))
-            if (type(img) is np.ndarray):  
-                retval, buffer = cv2.imencode('.jpg', img)
-                imgAsBase64 = base64.b64encode(buffer)
-                toEmit = ('imgFrame', str(imgAsBase64))
-                #emitSocket('imgFrame', imgAsBase64)
-                cv2.imshow('frame', img)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+            if (type(img) is np.ndarray):
+                with lock: 
+                    outputFrame = img.copy()
+                # cv2.imshow('frame', img)
+                # if cv2.waitKey(1) & 0xFF == ord('q'):
+                #     break
             dat = b''
 
     # cap.release()
-    cv2.destroyAllWindows()
-    s.close()
+    # cv2.destroyAllWindows()
+    # s.close()
 
 
-def emmisionThread():
-    global toEmit
-    while(True):
-        e = toEmit
-        sio.emit(e[0], e[1])
-        sio.sleep(1./30)
+def videoStreamerServer():
+    videoApp.run(host=HOST, port=VIDEO_PORT, debug=False, use_reloader=False) # dont touch this shit!
+
+def generate():
+	# grab global references to the output frame and lock variables
+	global outputFrame, lock
+	# loop over frames from the output stream
+	while True:
+		# wait until the lock is acquired
+		with lock:
+			# check if the output frame is available, otherwise skip
+			# the iteration of the loop
+			if outputFrame is None:
+				continue
+			# encode the frame in JPEG format
+			(flag, encodedImage) = cv2.imencode(".jpg", outputFrame)
+			# ensure the frame was successfully encoded
+			if not flag:
+				continue
+		# yield the output frame in the byte format
+		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
+			bytearray(encodedImage) + b'\r\n')
+  
+@videoApp.route("/video_feed")
+def video_feed():
+	return Response(generate(),
+		mimetype = "multipart/x-mixed-replace; boundary=frame")
 
 
 if __name__ == '__main__':
     controlThread = threading.Thread(target=controlServer, args=[]).start()
     videoThread = threading.Thread(target=videoServer, args=[]).start()
-    sio.start_background_task(target=emmisionThread)
+    videoStreamerThread = threading.Thread(target=videoStreamerServer, args=[]).start()
     @sio.event
     def connect():
         print(f'Connection from')
@@ -109,4 +137,4 @@ if __name__ == '__main__':
         print('received control string: ' + json)
         controlPI(json + '@')
     print("here")
-    sio.run(flaskApp, host='0.0.0.0', port=8002)
+    sio.run(socketApp, host=HOST, port=SOCKET_PORT)
