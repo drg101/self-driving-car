@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { Grid } from '@material-ui/core'
-import VideoStream from './video-stream/VideoStream'
 import ControlPad from './control-pad/ControlPad'
 import NoSignal from "./assets/nosignal.png"
 import { io } from "socket.io-client";
@@ -87,7 +86,7 @@ function App() {
                     <Grid container>
                         <Grid item xs={12}>
                             <div style={{ height: "60vh" }}>
-                                <VideoStream socket={socket} />
+                                <img src={`http://${SERVER_IP}:8003/video_feed`} style={{ width: "100%", height: "100%" }} />
                             </div>
                         </Grid>
                         <Grid item xs={12}>
