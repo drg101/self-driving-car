@@ -24,13 +24,14 @@ VIDEO_PORT = 8003
 HOST = '0.0.0.0'
 
 
-
+# helper method to control the PI. Pretty self explanatory.
 def controlPI(controlJSON):
     global pi
     if pi != None:
         pi.send(str(controlJSON).encode())
 
-def controlServer():
+# Thread that creates server that the pi TCP connects with on port 6669.
+def controlSenderServer():
     global pi
     PORT = CONTROL_PORT
 
@@ -48,8 +49,9 @@ def controlServer():
         pi = c
         break
 
-
-def videoServer():
+# Thread that creates a server that the pi UDP connects with on port 6670. This is the one that
+# collects video stream data.
+def videoReceiverServer():
     global outputFrame,lock,videoApp
     MAX_DGRAM = 2**16
 
@@ -75,24 +77,17 @@ def videoServer():
             dat += seg[1:]
             # our image
             img = cv2.imdecode(np.fromstring(dat, dtype=np.uint8), 1)
-            # smol_img = cv2.resize(img, (320, 240))
             if (type(img) is np.ndarray):
                 with lock: 
                     outputFrame = img.copy()
-                # cv2.imshow('frame', img)
-                # if cv2.waitKey(1) & 0xFF == ord('q'):
-                #     break
             dat = b''
 
-    # cap.release()
-    # cv2.destroyAllWindows()
-    # s.close()
-
-
-def videoStreamerServer():
+# Thread that creates a flask app on port 8003 that transmits the video data to the open world on 0.0.0.0:8003/video_feed
+def videoSenderServer():
     videoApp.run(host=HOST, port=VIDEO_PORT, debug=False, use_reloader=False) # dont touch this shit!
 
-def generate():
+# helper, this code was taken from a blog post and thats why it has so many comments
+def generateFrame():
 	# grab global references to the output frame and lock variables
 	global outputFrame, lock
 	# loop over frames from the output stream
@@ -114,14 +109,16 @@ def generate():
   
 @videoApp.route("/video_feed")
 def video_feed():
-	return Response(generate(),
+	return Response(generateFrame(),
 		mimetype = "multipart/x-mixed-replace; boundary=frame")
 
 
 if __name__ == '__main__':
-    controlThread = threading.Thread(target=controlServer, args=[]).start()
-    videoThread = threading.Thread(target=videoServer, args=[]).start()
-    videoStreamerThread = threading.Thread(target=videoStreamerServer, args=[]).start()
+    controlSenderThread = threading.Thread(target=controlSenderServer, args=[]).start()
+    videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[]).start()
+    videoSenderThread = threading.Thread(target=videoSenderServer, args=[]).start()
+    
+    # the sio listeners dont play well with threads so they live here now.
     @sio.event
     def connect():
         print(f'Connection from')
