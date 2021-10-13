@@ -39,9 +39,9 @@ export default function ControlPad(props: ControlPadProps) {
             onTouchEnd={(e) => {
                 handleMouseEvent(false, 0)
             }}
-            onTouchCancel={(e) => {
-                handleMouseEvent(false, 0)
-            }}
+            // onTouchCancel={(e) => {
+            //     handleMouseEvent(false, 0)
+            // }}
         >
             <div className="padIconContainer">
                 {upDown ? <KeyboardArrowUp fontSize="large" className="padIcon" /> : <KeyboardArrowLeft fontSize="large" className="padIcon" />}
@@ -63,9 +63,9 @@ export default function ControlPad(props: ControlPadProps) {
             onTouchEnd={(e) => {
                 handleMouseEvent(false, 1)
             }}
-            onTouchCancel={(e) => {
-                handleMouseEvent(false, 1)
-            }}
+            // onTouchCancel={(e) => {
+            //     handleMouseEvent(false, 1)
+            // }}
         >
             <div className="padIconContainer">
                 {upDown ? <KeyboardArrowDown fontSize="large" className="padIcon" /> : <KeyboardArrowRight fontSize="large" className="padIcon" />}

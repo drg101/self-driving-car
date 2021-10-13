@@ -82,21 +82,21 @@ function App() {
     return (
         <div className="App">
             <Grid container style={{ height: "100%" }}>
-                <Grid item xs={8}>
+                <Grid item xs={6}>
                     <Grid container>
-                        <Grid item xs={12}>
+                        {/* <Grid item xs={12}>
                             <div style={{ height: "60vh" }}>
                                 <img src={`http://${SERVER_IP}:8003/video_feed`} style={{ width: "100%", height: "100%" }} />
                             </div>
-                        </Grid>
+                        </Grid> */}
                         <Grid item xs={12}>
-                            <div style={{ height: "40vh" }}>
+                            <div style={{ height: "100vh" }}>
                                 <ControlPad orientation="left-right" control={control} setControl={setControl} />
                             </div>
                         </Grid>
                     </Grid>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid item xs={6}>
                     <div style={{ height: "100vh" }}>
                         <ControlPad orientation="up-down" control={control} setControl={setControl} />
                     </div>
