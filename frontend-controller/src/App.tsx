@@ -6,7 +6,7 @@ import ControlPad from './control-pad/ControlPad'
 import NoSignal from "./assets/nosignal.png"
 import { io } from "socket.io-client";
 
-const SERVER_IP = '192.168.80.58'
+const SERVER_IP = '192.168.0.112'
 
 const socket = io(`http://${SERVER_IP}:8002`, {
     reconnectionDelayMax: 10000
