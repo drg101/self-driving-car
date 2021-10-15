@@ -12,9 +12,9 @@ import socket
 import struct
 import math
 
-serverip = '192.168.80.58'
+serverip = '192.168.0.112'
 videoRes = (640, 480)
-videoFps = 60
+videoFps = 30
 
 # Thread that creates a thread that connects to the server @serverip
 def controlScript():
