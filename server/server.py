@@ -139,21 +139,4 @@ if __name__ == '__main__':
     controlSenderThread = threading.Thread(target=controlSenderServer, args=[]).start()
     videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[]).start()
     controlPad = threading.Thread(target=controlPad, args=[]).start()
-    
-    #the sio listeners dont play well with threads so they live here now.
-    @sio.event
-    def connect():
-        print(f'Connection from')
-        return True
-
-    @sio.event
-    def disconnect():
-        print(f'disConnection from')
-        return True
-
-    @sio.on('my_event')
-    def handle_my_custom_event(json):
-        print('received control string: ' + json)
-        controlPI(json + '@')
-    print("here")
-    sio.run(socketApp, host=HOST, port=SOCKET_PORT, debug=False)
+    print('server running.')
