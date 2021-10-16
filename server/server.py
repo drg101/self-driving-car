@@ -1,27 +1,17 @@
-from __future__ import division
 import cv2
-import flask
 import numpy as np
 import struct
 import socket
 import threading
-from flask import Flask, Response
-from flask_socketio import SocketIO, send, emit
-import base64
-import time
-from flask_compress import Compress
 import logging
 from pynput import keyboard
 import json
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
-compress = Compress()
 
 pi = None
-socketApp = Flask(__name__)
 
-sio = SocketIO(socketApp, cors_allowed_origins="*")
 outputFrame = None
 q = [int(cv2.IMWRITE_JPEG_QUALITY), 20]
 
@@ -29,8 +19,6 @@ piInput = {'lr': 0, 'fw': 0}
 
 
 CONTROL_PORT = 6669
-SOCKET_PORT = 8002
-VIDEO_PORT = 8003
 HOST = '0.0.0.0'
 
 
