@@ -6,6 +6,8 @@ import threading
 import logging
 from pynput import keyboard
 import json
+from VideoSaver import VideoSaver
+from time import time
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -49,7 +51,7 @@ def controlSenderServer():
 
 # Thread that creates a server that the pi UDP connects with on port 6670. This is the one that
 # collects video stream data.
-def videoReceiverServer():
+def videoReceiverServer(saver):
     MAX_DGRAM = 2**16
 
     def dump_buffer(s):
@@ -75,7 +77,9 @@ def videoReceiverServer():
             # our image
             img = cv2.imdecode(np.fromstring(dat, dtype=np.uint8), 1)
             if (type(img) is np.ndarray):
-                cv2.imshow("frames",cv2.resize(img, (1280, 960)))
+                if img.shape[0] > 0 and img.shape[1] > 1: 
+                    cv2.imshow("frames",cv2.resize(img, (1280, 960)))
+                    saver.save(img, time(), piInput)
                 if cv2.waitKey(1):
                     pass
             dat = b''
@@ -124,7 +128,10 @@ def controlPad():
 
 
 if __name__ == '__main__':
+    labels_path = Path()
+    images_folder = Path()
+    saver = VideoSaver(labels_path, images_folder)
     controlSenderThread = threading.Thread(target=controlSenderServer, args=[]).start()
-    videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[]).start()
+    videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[saver]).start()
     controlPad = threading.Thread(target=controlPad, args=[]).start()
     print('server running.')
