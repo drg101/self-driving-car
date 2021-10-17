@@ -8,6 +8,8 @@ from pynput import keyboard
 import json
 from VideoSaver import VideoSaver
 from time import time
+import os
+from pathlib import Path
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -128,9 +130,14 @@ def controlPad():
 
 
 if __name__ == '__main__':
-    labels_path = Path()
-    images_folder = Path()
+    root_path = Path('/home/dr101/School/self-driving-car/data')
+    labels_path = root_path / 'labels.csv'
+    images_folder = root_path /'images'
+
+    print(f'saving labels at {labels_path}')
+    print(f'saving images at {images_folder}')
     saver = VideoSaver(labels_path, images_folder)
+
     controlSenderThread = threading.Thread(target=controlSenderServer, args=[]).start()
     videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[saver]).start()
     controlPad = threading.Thread(target=controlPad, args=[]).start()

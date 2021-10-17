@@ -1,2 +1,5 @@
 pi-onboard/__pycache__
 env/*
+data/*
+
+*.pyc
