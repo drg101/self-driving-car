@@ -31,10 +31,10 @@ class VideoSaver:
         fw = controlDict['fw']
         lr = controlDict['lr']
         self.img_buffer.append(img)
-        self.img_timestamps.append(timestamp)
+        self.img_timestamps.append(ms_timestamps)
         with open(self.labels_path, 'a') as f:
             labels_file = writer(f)
-            labels_file.writerow([timestamp, fw, lr])
+            labels_file.writerow([ms_timestamps, fw, lr])
         if self.size > self.MAX_BUFFER_SIZE:
             self.clear_img_buffer()
             self.img_buffer.clear()
