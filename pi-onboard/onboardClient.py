@@ -12,7 +12,7 @@ import socket
 import struct
 import math
 
-serverip = '192.168.0.112'
+serverip = '192.168.0.114'
 videoRes = (640, 480)
 videoFps = 30
 
