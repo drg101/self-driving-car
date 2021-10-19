@@ -14,7 +14,7 @@ speed = 50
 fwC = 0
 
 # pwm frequency. 
-pwmHz = 1000
+pwmHz = 440
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(fw,GPIO.OUT)

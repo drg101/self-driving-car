@@ -13,7 +13,7 @@ import math
 from PiVideoStream import PiVideoStream
 from SpeedEncoder import SpeedEncoder
 
-serverip = '192.168.0.113'
+serverip = '192.168.0.112'
 videoRes = (640, 480)
 videoFps = 30
 imReady = False

@@ -6,43 +6,21 @@ import math
 from control import setSpeed
 
 class SpeedEncoder:
-    def __init__(self, size=4, laserGPIOPin=22, goalRPM=350):
+    def __init__(self, tickrate=4, laserGPIOPin=22, goalRPM=90):
         print("I AM HERE")
-        self.size = size
-        self.index = 0
         self.laser = laserGPIOPin
-        self.previousTicks = np.array([i for i in range(size)])
-        self.previousTicks = self.previousTicks.astype('float64')
-
-        
-        self.isStopped = False
-        self.lastRPM = 0
-
         self.goal = goalRPM
+        self.tickrate = tickrate
+        self.currentSpeed = 0
+        self.currentPower = 0
+        setSpeed(self.currentPower)
 
         GPIO.setmode(GPIO.BCM)  
         GPIO.setup(self.laser, GPIO.IN)
-        setSpeed(100)
         self.startPolling()
-        self.startControllingSpeed()
     
-    def startControllingSpeed(self):
-        threading.Thread(target=self.controlSpeed, args=[]).start()
-        return self
-
-    def controlSpeed(self):
-        while 1:
-            avgRpm = self.getAvgRPM()
-            print(f'avgRpm = {avgRpm}')
-            if avgRpm != self.goal:
-                newSpeed = min(max(math.floor(40 - (avgRpm - self.goal) / 4),0),100)
-                # if self.isStopped:
-                #     newSpeed = 100
-                print(f'newspeed = {newSpeed}')
-                setSpeed(newSpeed)
-            else:
-                setSpeed(50)
-            time.sleep(1/60)
+    def updatePower(self):
+        setSpeed(self.currentPower)
 
     def startPolling(self):
         threading.Thread(target=self.poll, args=[]).start()
@@ -51,34 +29,38 @@ class SpeedEncoder:
     def poll(self):
         print("starting polling for speed!")
         oldReflect = 1
-        oldTime = 0
-        up = 0
-        lastRPMSetTime = 0
+        lastFlush = time.time()
+        lastTickTime = 0
+        currentTickCount = 0
+        lastSpeed = 0
         while 1:
             reflect = GPIO.input(self.laser)
-            falseKick = False
-            if time.time() - lastRPMSetTime > 0.2:
-                falseKick = True
-
-            if reflect != oldReflect or falseKick:
-                if reflect == 0 or falseKick:
-                    up+=1
-                    rpm = 60 / (time.time() - lastRPMSetTime) 
-                    if rpm > 760:
-                        continue
-                    if falseKick:
-                        self.isStopped = True
-                        rpm = 0
-                    else:
-                        self.isStopped = False
-                    self.previousTicks[self.index] = rpm
-                    self.index += 1
-                    self.index = self.index % self.size
-                    self.lastRPM = rpm
-                    lastRPMSetTime = time.time()
-
+            if reflect != oldReflect:
+                rpm = 15 / (time.time() - lastTickTime)
+                if reflect == 0 and rpm < 500:
+                    # print(f'Caught rpm@{rpm}')
+                    lastTickTime = time.time()
+                    currentTickCount += 1
                 oldReflect = reflect
+            if time.time() - lastFlush > (1/self.tickrate):
+                self.currentSpeed = currentTickCount * 15 * self.tickrate
+                print(f'speed:{self.currentSpeed}')
+                lastSpeed = self.currentSpeed
+                if self.currentSpeed == 120:
+                    self.currentPower = 33
+                if self.currentSpeed == 0 and lastSpeed == 0:
+                    self.currentPower = 70
+                if self.currentSpeed == 0 and lastSpeed > 0:
+                    self.currentPower = 40
+                if self.currentSpeed > 120 and lastSpeed > 120:
+                    self.currentPower = 20
+                if self.currentSpeed < 120 and lastSpeed >= 120:
+                    self.currentPower = 44
+                if self.currentSpeed > 0 and self.currentSpeed < 120 and lastSpeed < 120 and lastSpeed > 0:
+                    self.currentPower = 53
+                # self.currentPower = max(0,min(100,self.currentPower))
+                print(self.currentPower)
+                lastFlush = time.time()
+                currentTickCount = 0
+                self.updatePower()
 
-    def getAvgRPM(self):
-        mean = np.mean(self.previousTicks)
-        return mean
