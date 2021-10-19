@@ -1,4 +1,3 @@
-from __future__ import division
 from control import forward, backward, left, right, straight, stop, setSpeed
 import socket            
 import json
@@ -11,10 +10,14 @@ import numpy as np
 import socket
 import struct
 import math
+from PiVideoStream import PiVideoStream
 
-serverip = '192.168.0.114'
+serverip = '192.168.0.113'
 videoRes = (640, 480)
 videoFps = 30
+imReady = False
+currIm = None
+newFrame = False
 
 # Thread that creates a thread that connects to the server @serverip
 def controlScript():
@@ -77,11 +80,13 @@ class FrameSegment(object):
         Compress image and Break down
         into data segments 
         """
+        # rs_img = cv2.resize(img, (videoRes[0] // 2, videoRes[1] // 2)) 
         compress_img = cv2.imencode('.jpg', img)[1]
-        # resized_image = cv2.resize(compress_img, (, 75)) 
         dat = compress_img.tostring()
         size = len(dat)
+        # print(size)
         count = math.ceil(size/(self.MAX_IMAGE_DGRAM))
+        #print(count)
         array_pos_start = 0
         while count:
             array_pos_end = min(size, array_pos_start + self.MAX_IMAGE_DGRAM)
@@ -92,16 +97,7 @@ class FrameSegment(object):
             array_pos_start = array_pos_end
             count -= 1
 
-# Creates a thread that emits video from the picam.
-def videoScript():
-    camera = PiCamera()
-    camera.resolution = videoRes
-    camera.framerate = videoFps
-    rawCapture = PiRGBArray(camera, size=videoRes)
-    # wait for camera to exist
-    time.sleep(0.1)
-    print("sending video data")
-
+def videoUploader():
     # make da socket on port port 6670
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -109,14 +105,18 @@ def videoScript():
 
     # this is the thing that sends it to the server
     fs = FrameSegment(s, port)
-    
-    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-        image = frame.array
-        fs.udp_frame(image)
-        rawCapture.truncate(0)
+    prevTime = 0
+    vs = PiVideoStream()
+    vs.start()
+    time.sleep(2.0)
+    while True:
+        if time.time() - prevTime >= 1 / 30:
+            # print(1 / (time.time() - prevTime))
+            prevTime = time.time()
+            fs.udp_frame(vs.read())
 
 if __name__ == "__main__":
     controlThread = threading.Thread(target=controlScript, args=[])
     controlThread.start()
-    videoThread = threading.Thread(target=videoScript, args=[])
-    videoThread.start()
+    videoUploadThread = threading.Thread(target=videoUploader, args=[])
+    videoUploadThread.start()
