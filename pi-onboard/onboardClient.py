@@ -86,7 +86,7 @@ class FrameSegment(object):
         size = len(dat)
         # print(size)
         count = math.ceil(size/(self.MAX_IMAGE_DGRAM))
-        # print(count)
+        #print(count)
         array_pos_start = 0
         while count:
             array_pos_end = min(size, array_pos_start + self.MAX_IMAGE_DGRAM)
@@ -110,7 +110,7 @@ def videoUploader():
     vs.start()
     time.sleep(2.0)
     while True:
-        if time.time() - prevTime >= 1 / 60:
+        if time.time() - prevTime >= 1 / 30:
             # print(1 / (time.time() - prevTime))
             prevTime = time.time()
             fs.udp_frame(vs.read())

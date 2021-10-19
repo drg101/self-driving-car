@@ -7,7 +7,7 @@ import cv2
 
 
 class PiVideoStream:
-    def __init__(self, resolution=(320, 240), framerate=60, **kwargs):
+    def __init__(self, resolution=(320, 240), framerate=30, **kwargs):
         # initialize the camera
         self.camera = PiCamera()
 
@@ -42,7 +42,7 @@ class PiVideoStream:
         for f in self.stream:
             # grab the frame from the stream and clear the stream in
             # preparation for the next frame
-            # print(1 / (time.time() - oldTime))
+            #print(1 / (time.time() - oldTime))
             oldTime = time.time()
             self.frame = f.array
             self.rawCapture.truncate(0)
