@@ -16,10 +16,10 @@ fwC = 0
 fwSpeed = 25
 
 # duty cycle whilst turning left or right 
-lrSpeed = 34
+lrSpeed = 33
 
 # pwm frequency. 
-pwmHz = 24
+pwmHz = 28
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(fw,GPIO.OUT)
