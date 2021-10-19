@@ -6,7 +6,7 @@ import math
 from control import setSpeed
 
 class SpeedEncoder:
-    def __init__(self, size=6, laserGPIOPin=22, goalRPM=250):
+    def __init__(self, size=4, laserGPIOPin=22, goalRPM=350):
         print("I AM HERE")
         self.size = size
         self.index = 0
@@ -14,9 +14,8 @@ class SpeedEncoder:
         self.previousTicks = np.array([i for i in range(size)])
         self.previousTicks = self.previousTicks.astype('float64')
 
-        self.acceptedRPMs = np.array([0 for i in range(size)])
-        self.acceptedRPMIndex = 0
-
+        
+        self.isStopped = False
         self.lastRPM = 0
 
         self.goal = goalRPM
@@ -36,15 +35,14 @@ class SpeedEncoder:
             avgRpm = self.getAvgRPM()
             print(f'avgRpm = {avgRpm}')
             if avgRpm != self.goal:
-                newSpeed = min(max(math.floor(30 - (avgRpm - self.goal) / 5),0),100)
-                print(newSpeed)
+                newSpeed = min(max(math.floor(40 - (avgRpm - self.goal) / 4),0),100)
+                # if self.isStopped:
+                #     newSpeed = 100
+                print(f'newspeed = {newSpeed}')
                 setSpeed(newSpeed)
             else:
                 setSpeed(50)
-            time.sleep(1/10)
-
-    def getSmoothedCurrentRPM(self):
-        return math.floor(np.mean(np.sort(self.acceptedRPMs)[:(self.size // 2)]))
+            time.sleep(1/60)
 
     def startPolling(self):
         threading.Thread(target=self.poll, args=[]).start()
@@ -59,26 +57,28 @@ class SpeedEncoder:
         while 1:
             reflect = GPIO.input(self.laser)
             falseKick = False
-            if time.time() - lastRPMSetTime > 1:
-                reflect = 0
+            if time.time() - lastRPMSetTime > 0.2:
+                falseKick = True
 
-            if reflect != oldReflect:
-                if reflect == 0:
+            if reflect != oldReflect or falseKick:
+                if reflect == 0 or falseKick:
                     up+=1
-                    lastRPMSetTime = time.time()
-                    self.previousTicks[self.index] = time.time()
+                    rpm = 60 / (time.time() - lastRPMSetTime) 
+                    if rpm > 760:
+                        continue
+                    if falseKick:
+                        self.isStopped = True
+                        rpm = 0
+                    else:
+                        self.isStopped = False
+                    self.previousTicks[self.index] = rpm
                     self.index += 1
                     self.index = self.index % self.size
+                    self.lastRPM = rpm
+                    lastRPMSetTime = time.time()
 
                 oldReflect = reflect
 
     def getAvgRPM(self):
-        sortedSpeed = np.sort(self.previousTicks)
-        diffs = np.diff(sortedSpeed)
-        # print('diffs')
-        # print(diffs)
-        rpms = 60 / diffs
-        # print('rpm')
-        # print(rpms)
-        mean = np.mean(rpms)
+        mean = np.mean(self.previousTicks)
         return mean
