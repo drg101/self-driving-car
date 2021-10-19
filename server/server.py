@@ -10,14 +10,16 @@ from VideoSaver import VideoSaver
 from time import time
 import os
 from pathlib import Path
+import time
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 pi = None
 
+newFrame = False
+
 outputFrame = None
-q = [int(cv2.IMWRITE_JPEG_QUALITY), 20]
 
 piInput = {'lr': 0, 'fw': 0}
 
@@ -53,9 +55,9 @@ def controlSenderServer():
 
 # Thread that creates a server that the pi UDP connects with on port 6670. This is the one that
 # collects video stream data.
-def videoReceiverServer(saver):
+def videoReceiverServer():
     MAX_DGRAM = 2**16
-
+    global outputFrame, newFrame
     def dump_buffer(s):
         """ Emptying buffer frame """
         while True:
@@ -69,7 +71,7 @@ def videoReceiverServer(saver):
     s.bind(('0.0.0.0', 6670))
     dat = b''
     dump_buffer(s)
-
+    oldTime = time.time()
     while True:
         seg, addr = s.recvfrom(MAX_DGRAM)
         if struct.unpack("B", seg[0:1])[0] > 1:
@@ -79,12 +81,24 @@ def videoReceiverServer(saver):
             # our image
             img = cv2.imdecode(np.fromstring(dat, dtype=np.uint8), 1)
             if (type(img) is np.ndarray):
-                if img.shape[0] > 0 and img.shape[1] > 1: 
-                    cv2.imshow("frames",cv2.resize(img, (1280, 960)))
-                    saver.save(img, time(), piInput)
-                if cv2.waitKey(1):
-                    pass
+                if img.shape[0] > 0 and img.shape[1] > 1:
+                    # print(1 / (time.time() - oldTime))
+                    # oldTime = time.time() 
+                    outputFrame = img
+                    newFrame = True
             dat = b''
+            
+def videoShow(saver):
+    oldTime = 0 
+    global newFrame
+    while True:
+        if (type(outputFrame) is np.ndarray) and newFrame:
+            # print(1 / (time.time() - oldTime))
+            oldTime = time.time()
+            cv2.imshow("frame",cv2.resize(outputFrame, (1280, 960)))
+            newFrame = False
+            saver.save(outputFrame, time.time(), piInput)
+            cv2.waitKey(5)
 
 def controlChanged():
     print(f'control: {piInput}')
@@ -130,15 +144,16 @@ def controlPad():
 
 
 if __name__ == '__main__':
-    root_path = Path('/home/dr101/School/self-driving-car/data')
+    root_path = Path('/home/dr101/self-driving-car/server/data2')
     labels_path = root_path / 'labels.csv'
     images_folder = root_path /'images'
 
     print(f'saving labels at {labels_path}')
     print(f'saving images at {images_folder}')
     saver = VideoSaver(labels_path, images_folder)
-
+    # saver ='b'
     controlSenderThread = threading.Thread(target=controlSenderServer, args=[]).start()
-    videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[saver]).start()
+    videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[]).start()
     controlPad = threading.Thread(target=controlPad, args=[]).start()
+    videoShowerThread = threading.Thread(target=videoShow, args=[saver]).start()
     print('server running.')
