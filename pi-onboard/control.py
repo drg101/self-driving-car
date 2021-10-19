@@ -6,31 +6,29 @@ bk = 24
 
 leftP = 20
 rightP = 21
+turnStrengthP = 16
 
-speed = 30
+speed = 50
 
 # global for the current fore-aft control
 fwC = 0
 
-# duty cycle whilst only doing fore-aft
-fwSpeed = 25
-
-# duty cycle whilst turning left or right 
-lrSpeed = 33
-
 # pwm frequency. 
-pwmHz = 28
+pwmHz = 1000
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(fw,GPIO.OUT)
 GPIO.setup(bk,GPIO.OUT)
 GPIO.setup(leftP,GPIO.OUT)
 GPIO.setup(rightP,GPIO.OUT)
+GPIO.setup(turnStrengthP,GPIO.OUT)
 
 fwS=GPIO.PWM(fw,pwmHz)
 fwS.start(0)
 bkS=GPIO.PWM(bk,pwmHz)
 bkS.start(0)
+turnS=GPIO.PWM(turnStrengthP,1000)
+turnS.start(100)
 # GPIO.output(fw,GPIO.LOW)
 # GPIO.output(bk,GPIO.LOW)
 
@@ -74,19 +72,16 @@ def stop():
     # GPIO.output(bk, GPIO.LOW)
 
 def left():
-    setSpeed(lrSpeed)
     print("left")
     GPIO.output(rightP, GPIO.LOW)
     GPIO.output(leftP, GPIO.HIGH)
 
 def right():
-    setSpeed(lrSpeed)
     print("right")
     GPIO.output(leftP, GPIO.LOW)
     GPIO.output(rightP, GPIO.HIGH)
 
 def straight():
-    setSpeed(fwSpeed)
     print("straight")
     GPIO.output(leftP, GPIO.LOW)
     GPIO.output(rightP, GPIO.LOW)

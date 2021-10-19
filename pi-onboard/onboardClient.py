@@ -11,6 +11,7 @@ import socket
 import struct
 import math
 from PiVideoStream import PiVideoStream
+from SpeedEncoder import SpeedEncoder
 
 serverip = '192.168.0.113'
 videoRes = (640, 480)
@@ -116,6 +117,8 @@ def videoUploader():
             fs.udp_frame(vs.read())
 
 if __name__ == "__main__":
+    print("calling speed encoder")
+    speedo = SpeedEncoder()
     controlThread = threading.Thread(target=controlScript, args=[])
     controlThread.start()
     videoUploadThread = threading.Thread(target=videoUploader, args=[])
