@@ -11,6 +11,9 @@ from time import time
 import os
 from pathlib import Path
 import time
+from XboxInput import begin_polling, get_inputs
+
+ENABLE_SAVING = False
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -97,12 +100,15 @@ def videoShow(saver):
             oldTime = time.time()
             cv2.imshow("frame",cv2.resize(outputFrame, (1280, 960)))
             newFrame = False
-            saver.save(outputFrame, time.time(), piInput)
+            if saver != None:
+                saver.save(outputFrame, time.time(), piInput)
             cv2.waitKey(5)
 
-def controlChanged():
-    print(f'control: {piInput}')
-    controlPI(json.dumps(piInput) + '@')
+def controlChanged(newControl):
+    global piInput
+    piInput = newControl
+    print(f'control: {newControl}')
+    controlPI(json.dumps(newControl) + '@')
 
 def onKeyRelease(key):
     try:
@@ -117,7 +123,7 @@ def onKeyRelease(key):
         elif key == 'a' and piInput['lr'] != 1:
             piInput['lr'] = 0
         if json.dumps(piInput) != originalInput:
-            controlChanged()
+            controlChanged(piInput)
     except:
         pass
 
@@ -134,7 +140,7 @@ def onKeyPress(key):
         elif key == 'a':
             piInput['lr'] = -1
         if json.dumps(piInput) != originalInput:
-            controlChanged()
+            controlChanged(piInput)
     except:
         pass
     
@@ -144,16 +150,19 @@ def controlPad():
 
 
 if __name__ == '__main__':
-    root_path = Path('/home/dr101/self-driving-car/server/data2')
-    labels_path = root_path / 'labels.csv'
-    images_folder = root_path /'images'
+    saver = None
+    if ENABLE_SAVING:
+        root_path = Path('/home/dr101/self-driving-car/server/data2')
+        labels_path = root_path / 'labels.csv'
+        images_folder = root_path /'images'
 
-    print(f'saving labels at {labels_path}')
-    print(f'saving images at {images_folder}')
-    saver = VideoSaver(labels_path, images_folder)
+        print(f'saving labels at {labels_path}')
+        print(f'saving images at {images_folder}')
+        saver = VideoSaver(labels_path, images_folder)
     # saver ='b'
     controlSenderThread = threading.Thread(target=controlSenderServer, args=[]).start()
     videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[]).start()
     controlPad = threading.Thread(target=controlPad, args=[]).start()
+    begin_polling(controlChanged)
     videoShowerThread = threading.Thread(target=videoShow, args=[saver]).start()
     print('server running.')
