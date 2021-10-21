@@ -5,28 +5,32 @@ fw = 0
 bk = 0
 lr = 0
 
+EPSILON = 0.03
+
 def get_inputs():
-    return {'fw': fw - bk, 'lr': lr}
+    return {'fw': round(fw - bk,2), 'lr': lr}
 
 def poll(onChange):
     global fw,bk,lr
     while True:
-        change = False
         events = get_gamepad()
+        newfw = fw
+        newbk = bk
+        newlr = lr
         for event in events:
             if event.code == "ABS_RZ":
                 # print(f"FW: {event.state / 1023}")
-                change = True
-                fw = event.state / 1023
+                newfw = round(event.state / 1023,2)
             elif event.code == "ABS_Z":
                 # print(f"BK {event.state / 1023}")
-                change = True
-                bk = event.state / 1023
+                newbk = round(event.state / 1023,2)
             elif event.code == "ABS_X":
                 # print(f"LR: {event.state / 32768}")
-                change = True
-                lr  = event.state / 32768
-        if change:
+                newlr  = round(event.state / 32768,2)
+        if abs(get_inputs()['fw'] - (newfw - newbk)) > EPSILON or abs(get_inputs()['lr'] - (newlr)) > EPSILON:
+            fw = newfw
+            bk = newbk
+            lr = newlr
             onChange(get_inputs())
 
 def begin_polling(onChange):
