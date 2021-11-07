@@ -84,7 +84,7 @@ def videoReceiverServer():
                 if img.shape[0] > 0 and img.shape[1] > 1:
                     # print(1 / (time.time() - oldTime))
                     # oldTime = time.time() 
-                    outputFrame = img
+                    outputFrame = np.flip(img, (0,1))
                     newFrame = True
             dat = b''
             
@@ -95,6 +95,9 @@ def videoShow(saver):
         if (type(outputFrame) is np.ndarray) and newFrame:
             # print(1 / (time.time() - oldTime))
             oldTime = time.time()
+            b = outputFrame[:,:,0]
+            r = outputFrame[:,:,2]
+            # bm2r = cv2.subtract(b,cv2.multiply(1.4,r))
             cv2.imshow("frame",cv2.resize(outputFrame, (1280, 960)))
             newFrame = False
             saver.save(outputFrame, time.time(), piInput)
@@ -144,14 +147,14 @@ def controlPad():
 
 
 if __name__ == '__main__':
-    root_path = Path('/home/dr101/self-driving-car/server/data4')
+    root_path = Path('/home/dr101/self-driving-car/server/data6')
     labels_path = root_path / 'labels.csv'
     images_folder = root_path /'images'
 
     print(f'saving labels at {labels_path}')
     print(f'saving images at {images_folder}')
     saver = VideoSaver(labels_path, images_folder)
-    # saver ='b'
+    # saver = None
     controlSenderThread = threading.Thread(target=controlSenderServer, args=[]).start()
     videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[]).start()
     controlPad = threading.Thread(target=controlPad, args=[]).start()
