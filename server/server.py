@@ -147,7 +147,7 @@ def controlPad():
 
 
 if __name__ == '__main__':
-    root_path = Path('/home/dr101/self-driving-car/server/data6')
+    root_path = Path('/home/dr101/self-driving-car/server/danielData1')
     labels_path = root_path / 'labels.csv'
     images_folder = root_path /'images'
 
