@@ -1,4 +1,4 @@
-from control import forward, backward, left, right, straight, stop, setSpeed
+from control import forward, backward, left, right, setTurnStrength, straight, stop, setSpeed
 import socket            
 import json
 import threading
@@ -12,7 +12,7 @@ import struct
 import math
 from PiVideoStream import PiVideoStream
 
-serverip = '192.168.0.113'
+serverip = '192.168.0.112'
 videoRes = (640, 480)
 videoFps = 30
 imReady = False
@@ -46,21 +46,24 @@ def controlScript():
                 lr = controlJSON['lr']
                 if oldFw != fw:
                     oldFw = fw
-                    if fw == 1:
+                    if fw > 0:
+                        setSpeed(math.floor(fw * 100))
                         forward()
-                    elif fw == -1:
+                    elif fw < 0:
+                        setSpeed(math.floor(abs(fw) * 100))
                         backward()
                     else:
                         stop()
                 
                 if oldLr != lr:
                     oldLr = lr
-                    if lr == 1:
+                    if lr > 0:
                         right()
-                    elif lr == -1:
+                    elif lr < 0:
                         left()
                     else:
                         straight()
+                    setTurnStrength(math.floor(abs(lr) * 100))
 
 # From a blog post
 class FrameSegment(object):
