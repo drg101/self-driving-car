@@ -11,9 +11,7 @@ from time import time
 import os
 from pathlib import Path
 import time
-from XboxInput import begin_polling, get_inputs
-
-ENABLE_SAVING = False
+import pickle
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -30,6 +28,10 @@ piInput = {'lr': 0, 'fw': 0}
 CONTROL_PORT = 6669
 HOST = '0.0.0.0'
 
+# leftMean = np.load('leftMean.npy')
+# rightMean = np.load('rightMean.npy')
+# straightMean = np.load('straightMean.npy')
+knn = pickle.load(open('knn_serialized.pickle', 'rb'))
 
 # helper method to control the PI. Pretty self explanatory.
 def controlPI(controlJSON):
@@ -55,12 +57,36 @@ def controlSenderServer():
         c.send('THANKJ YIOU FOR CONNECTUNG'.encode())
         pi = c
         break
+    
+def cropImage(im):
+    return im[25:60,0:80]
+    
+def processIm(im):
+    im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+    im = cv2.resize(im, (80,60))
+    return im
+
+def distance(x1, x2):
+    return np.linalg.norm(x1-x2)
+
+def predict_direction(imgFlat):
+    # sd = distance(imgFlat, straightMean)
+    # ld = distance(imgFlat, leftMean)
+    # rd = distance(imgFlat, rightMean)
+    # print(f'sd: {sd:0.3f} ld:{ld:0.3f} rd:{rd:0.3f}')
+    # if sd < ld and sd < rd:
+    #     return 0
+    # elif rd < sd and rd < ld:
+    #     return 1
+    # else:
+    #     return -1
+    return knn.predict([imgFlat])[0]
 
 # Thread that creates a server that the pi UDP connects with on port 6670. This is the one that
 # collects video stream data.
 def videoReceiverServer():
     MAX_DGRAM = 2**16
-    global outputFrame, newFrame
+    global outputFrame, newFrame, piInput
     def dump_buffer(s):
         """ Emptying buffer frame """
         while True:
@@ -87,7 +113,13 @@ def videoReceiverServer():
                 if img.shape[0] > 0 and img.shape[1] > 1:
                     # print(1 / (time.time() - oldTime))
                     # oldTime = time.time() 
-                    outputFrame = np.flip(img, (0,1))
+                    outputFrame = img
+                    driverIm = cropImage(processIm(img)).flatten()
+                    direction = predict_direction(driverIm)
+                    direction = int(direction)
+                    print(f'dir: {direction}')
+                    piInput['lr'] = direction
+                    controlChanged()
                     newFrame = True
             dat = b''
             
@@ -98,20 +130,14 @@ def videoShow(saver):
         if (type(outputFrame) is np.ndarray) and newFrame:
             # print(1 / (time.time() - oldTime))
             oldTime = time.time()
-            b = outputFrame[:,:,0]
-            r = outputFrame[:,:,2]
-            # bm2r = cv2.subtract(b,cv2.multiply(1.4,r))
             cv2.imshow("frame",cv2.resize(outputFrame, (1280, 960)))
             newFrame = False
-            if saver != None:
-                saver.save(outputFrame, time.time(), piInput)
+            #saver.save(outputFrame, time.time(), piInput)
             cv2.waitKey(5)
 
-def controlChanged(newControl):
-    global piInput
-    piInput = newControl
-    print(f'control: {newControl}')
-    controlPI(json.dumps(newControl) + '@')
+def controlChanged():
+    print(f'control: {piInput}')
+    controlPI(json.dumps(piInput) + '@')
 
 def onKeyRelease(key):
     try:
@@ -126,7 +152,7 @@ def onKeyRelease(key):
         elif key == 'a' and piInput['lr'] != 1:
             piInput['lr'] = 0
         if json.dumps(piInput) != originalInput:
-            controlChanged(piInput)
+            controlChanged()
     except:
         pass
 
@@ -143,7 +169,7 @@ def onKeyPress(key):
         elif key == 'a':
             piInput['lr'] = -1
         if json.dumps(piInput) != originalInput:
-            controlChanged(piInput)
+            controlChanged()
     except:
         pass
     
@@ -153,17 +179,9 @@ def controlPad():
 
 
 if __name__ == '__main__':
-    root_path = Path('/home/dr101/self-driving-car/server/danielData1')
-    labels_path = root_path / 'labels.csv'
-    images_folder = root_path /'images'
-
-    print(f'saving labels at {labels_path}')
-    print(f'saving images at {images_folder}')
-    saver = VideoSaver(labels_path, images_folder)
-    # saver = None
+    saver ='b'
     controlSenderThread = threading.Thread(target=controlSenderServer, args=[]).start()
     videoReceiveThread = threading.Thread(target=videoReceiverServer, args=[]).start()
     controlPad = threading.Thread(target=controlPad, args=[]).start()
-    begin_polling(controlChanged)
     videoShowerThread = threading.Thread(target=videoShow, args=[saver]).start()
     print('server running.')
