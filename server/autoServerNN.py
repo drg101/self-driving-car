@@ -16,7 +16,7 @@ import pickle
 
 from tensorflow import keras
 
-model = keras.models.load_model('../models/daniel_dense.h5')
+model = keras.models.load_model('../models/daniel_dense_new_v1.h5')
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
