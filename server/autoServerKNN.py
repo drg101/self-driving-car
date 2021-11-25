@@ -11,12 +11,32 @@ from time import time
 import os
 from pathlib import Path
 import time
+import faiss
 import pickle
 
+(X_train, y_train) = pickle.load(open('../ml/train_set.pickle', 'rb'))
 
-from tensorflow import keras
+class FaissKNeighbors:
+    def __init__(self, k=5):
+        self.index = None
+        self.y = None
+        self.k = k
 
-model = keras.models.load_model('./')
+    def fit(self, X, y):
+        self.index = faiss.IndexFlatL2(X.shape[1])
+        self.index.add(X.astype(np.float32))
+        self.y = y
+
+    def predict(self, X):
+        distances, indices = self.index.search(X.astype(np.float32), k=self.k)
+        votes = self.y[indices] + 1
+        predictions = np.array([np.argmax(np.bincount(x)) for x in votes]) - 1
+        return predictions
+
+knn = FaissKNeighbors(k=51)
+knn.fit(X_train, y_train)
+
+
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -63,8 +83,6 @@ def controlSenderServer():
         pi = c
         break
     
-def cropImage(im):
-    return im[25:60,0:80]
 
 def bmxr(im, x=1.5):
     b = im[:,:,0]
@@ -76,7 +94,7 @@ def thresholdIm(im, low=50, high=255):
     return im
     
 def processIm(im):
-    im = cv2.resize(im,(80,60))
+    im = cv2.resize(im,(40,30))
     im = bmxr(im,1.25)
     im = thresholdIm(im,8,255)
     return im
@@ -85,18 +103,7 @@ def distance(x1, x2):
     return np.linalg.norm(x1-x2)
 
 def predict_direction(imgFlat):
-    # sd = distance(imgFlat, straightMean)
-    # ld = distance(imgFlat, leftMean)
-    # rd = distance(imgFlat, rightMean)
-    # print(f'sd: {sd:0.3f} ld:{ld:0.3f} rd:{rd:0.3f}')
-    # if sd < ld and sd < rd:
-    #     return 0
-    # elif rd < sd and rd < ld:
-    #     return 1
-    # else:
-    #     return -1
-    print(imgFlat)
-    return model(np.array([imgFlat]))
+    return knn.predict(np.array([imgFlat]))[0]
 
 # Thread that creates a server that the pi UDP connects with on port 6670. This is the one that
 # collects video stream data.
@@ -129,14 +136,15 @@ def videoReceiverServer():
                 if img.shape[0] > 0 and img.shape[1] > 1:
                     # print(1 / (time.time() - oldTime))
                     img = np.flip(img, (0,1))
-                    outputFrame = img
                     if time.time() - oldCtlTime > 0.2:
                         oldCtlTime = time.time() 
-                        driverIm = processIm(img).flatten()
-                        direction = predict_direction(driverIm)
-                        direction = direction[0].numpy().argmax() - 1
+                        sp = time.time()
+                        driverIm = processIm(img)
+                        driverImFlat = driverIm.flatten()
+                        outputFrame = driverIm
+                        direction = predict_direction(driverImFlat)
                         direction = int(direction)
-                        print(f'dir: {direction}')
+                        print(f'dir: {direction} TTP:{time.time() - sp}')
                         piInput['lr'] = direction
                         controlChanged()
                     newFrame = True
