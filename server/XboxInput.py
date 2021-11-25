@@ -27,7 +27,7 @@ def poll(onChange):
         for event in events:
             if event.code == "ABS_RZ":
                 # print(f"FW: {event.state / 1023}")
-                newfw = round(event.state / 1023,2)
+                newfw = round(event.state / 1023,2) * 0.5
             elif event.code == "ABS_Z":
                 # print(f"BK {event.state / 1023}")
                 newbk = round(event.state / 1023,2)

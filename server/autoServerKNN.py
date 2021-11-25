@@ -13,6 +13,11 @@ from pathlib import Path
 import time
 import pickle
 
+
+from tensorflow import keras
+
+model = keras.models.load_model('./')
+
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -31,7 +36,7 @@ HOST = '0.0.0.0'
 # leftMean = np.load('leftMean.npy')
 # rightMean = np.load('rightMean.npy')
 # straightMean = np.load('straightMean.npy')
-knn = pickle.load(open('knn_serialized.pickle', 'rb'))
+# knn = pickle.load(open('knn_serialized.pickle', 'rb'))
 
 # helper method to control the PI. Pretty self explanatory.
 def controlPI(controlJSON):
@@ -60,10 +65,20 @@ def controlSenderServer():
     
 def cropImage(im):
     return im[25:60,0:80]
+
+def bmxr(im, x=1.5):
+    b = im[:,:,0]
+    r = im[:,:,2]
+    return cv2.subtract(b,cv2.multiply(r,x))
+
+def thresholdIm(im, low=50, high=255):
+    e,im = cv2.threshold(im, low, high, cv2.THRESH_BINARY)
+    return im
     
 def processIm(im):
-    im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
-    im = cv2.resize(im, (80,60))
+    im = cv2.resize(im,(80,60))
+    im = bmxr(im,1.25)
+    im = thresholdIm(im,8,255)
     return im
 
 def distance(x1, x2):
@@ -80,7 +95,8 @@ def predict_direction(imgFlat):
     #     return 1
     # else:
     #     return -1
-    return knn.predict([imgFlat])[0]
+    print(imgFlat)
+    return model(np.array([imgFlat]))
 
 # Thread that creates a server that the pi UDP connects with on port 6670. This is the one that
 # collects video stream data.
@@ -100,7 +116,7 @@ def videoReceiverServer():
     s.bind(('0.0.0.0', 6670))
     dat = b''
     dump_buffer(s)
-    oldTime = time.time()
+    oldCtlTime = time.time()
     while True:
         seg, addr = s.recvfrom(MAX_DGRAM)
         if struct.unpack("B", seg[0:1])[0] > 1:
@@ -112,14 +128,17 @@ def videoReceiverServer():
             if (type(img) is np.ndarray):
                 if img.shape[0] > 0 and img.shape[1] > 1:
                     # print(1 / (time.time() - oldTime))
-                    # oldTime = time.time() 
+                    img = np.flip(img, (0,1))
                     outputFrame = img
-                    driverIm = cropImage(processIm(img)).flatten()
-                    direction = predict_direction(driverIm)
-                    direction = int(direction)
-                    print(f'dir: {direction}')
-                    piInput['lr'] = direction
-                    controlChanged()
+                    if time.time() - oldCtlTime > 0.2:
+                        oldCtlTime = time.time() 
+                        driverIm = processIm(img).flatten()
+                        direction = predict_direction(driverIm)
+                        direction = direction[0].numpy().argmax() - 1
+                        direction = int(direction)
+                        print(f'dir: {direction}')
+                        piInput['lr'] = direction
+                        controlChanged()
                     newFrame = True
             dat = b''
             
