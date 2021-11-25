@@ -16,7 +16,7 @@ import pickle
 
 from tensorflow import keras
 
-model = keras.models.load_model('../models/daniel_dense.h5')
+model = keras.models.load_model('../models/daniel_cnn_v2.h5')
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -74,15 +74,13 @@ def thresholdIm(im, low=50, high=255):
     
 def processIm(im):
     im = cv2.resize(im,(80,60))
-    im = bmxr(im,1.25)
-    im = thresholdIm(im,8,255)
     return im
 
 def distance(x1, x2):
     return np.linalg.norm(x1-x2)
 
-def predict_direction(imgFlat):
-    return model(np.array([imgFlat]))
+def predict_direction(img):
+    return model(np.array([img]))
 
 # Thread that creates a server that the pi UDP connects with on port 6670. This is the one that
 # collects video stream data.
@@ -116,12 +114,11 @@ def videoReceiverServer():
                     # print(1 / (time.time() - oldTime))
                     img = np.flip(img, (0,1))
                     # outputFrame = img
-                    if time.time() - oldCtlTime > 0.1:
+                    if time.time() - oldCtlTime > 0.3:
                         oldCtlTime = time.time() 
                         driverIm = processIm(img)
-                        driverImFlat = driverIm.flatten()
                         sP = time.time()
-                        direction = predict_direction(driverImFlat)
+                        direction = predict_direction(driverIm)
                         outputFrame = driverIm
                         print(f'ttp: {time.time() - sP}')
                         direction = direction[0].numpy().argmax() - 1
@@ -146,7 +143,6 @@ def videoShow(saver):
 
 def controlChanged():
     print(f'control: {piInput}')
-    piInput['fw'] = 1
     controlPI(json.dumps(piInput) + '@')
 
 def onKeyRelease(key):
