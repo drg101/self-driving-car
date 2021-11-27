@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import time
 from XboxInput import begin_polling, get_inputs
+import copy
 
 ENABLE_SAVING = False
 
@@ -103,8 +104,14 @@ def videoShow(saver):
             # bm2r = cv2.subtract(b,cv2.multiply(1.4,r))
             cv2.imshow("frame",cv2.resize(outputFrame, (1280, 960)))
             newFrame = False
-            if saver != None:
-                saver.save(outputFrame, time.time(), piInput)
+            editPinput = copy.deepcopy(piInput)
+            if editPinput['fw'] > 0.025:
+                editPinput['fw'] = 1
+            elif editPinput['fw'] < -0.025:
+                editPinput['fw'] = -1
+            else:
+                editPinput['fw'] = 0
+            saver.save(outputFrame, time.time(), editPinput)
             cv2.waitKey(5)
 
 def controlChanged(newControl):
@@ -153,7 +160,7 @@ def controlPad():
 
 
 if __name__ == '__main__':
-    root_path = Path('/home/dr101/self-driving-car/server/danielData1')
+    root_path = Path('/home/dr101/School/self-driving-car/server/dataTrackV2_5')
     labels_path = root_path / 'labels.csv'
     images_folder = root_path /'images'
 

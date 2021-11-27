@@ -9,3 +9,5 @@ data/*
 */venv
 ml/weirdblue.jpeg
 */data*
+
+models/*.pickle
