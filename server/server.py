@@ -53,7 +53,7 @@ def controlSenderServer():
         print('Got connection from', addr)
 
         # send a thank you message to the client. encoding to send byte type.
-        c.send('THANKJ YIOU FOR CONNECTUNG'.encode())
+        c.send('thanks for connecting'.encode())
         pi = c
         break
 
